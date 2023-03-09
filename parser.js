@@ -35,7 +35,7 @@ function parseHTML() {
       cells.each(function(index) {        
         // store cell data in rowObj
         if (index === 0) {
-          rowObj.date = $(this).text().trim();
+          rowObj.date = parseDate($(this).text().trim());
         } else if (index === 1) {
           rowObj.name = $(this).text().trim();
         } else if (index === 2) {
@@ -87,6 +87,20 @@ function createTable() {
   const mergeContainer = $("<div>").append(mergeInput).append(mergeButton);
   $('#output').prepend(mergeContainer);
 
+  // Add a select element for choosing the month to filter by
+  const monthSelect = $("<select>").attr("id", "monthSelect");
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  months.forEach(function(month) {
+    monthSelect.append($("<option>").attr("value", month).text(month));
+  });
+
+  // Add a button for filtering the data by month
+  const filterButton = $("<button>").text("Filter by Month").click(filterByMonth);
+
+  // Add the select element and button to the output div
+  const filterContainer = $("<div>").append(monthSelect).append(filterButton);
+  $('#output').prepend(filterContainer);
+
   // Create a new table element in the outputDiv
   const outputTable = $("<table>");
   $('#output').append(outputTable);
@@ -118,7 +132,7 @@ function createTable() {
     outputRow.append(mergeCell);
 
     // Add cells with the data from the rowData object
-    outputRow.append($("<td>").text(rowData.date));
+    outputRow.append($("<td>").text(formatDate(rowData.date)));
     outputRow.append($("<td>").text(rowData.name));
     outputRow.append($("<td>").text(rowData.debit));
     outputRow.append($("<td>").text(rowData.credit));
@@ -176,4 +190,29 @@ function mergeRows() {
 
 function deleteRow(rowIndex) {
   transactionData.splice(rowIndex, 1);
+}
+
+function parseDate(str) {
+  const [month, day, year] = str.split(/[\s,]+/);
+  return new Date(`${month} ${day}, ${year}`);
+}
+
+function formatDate(date) {
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dayOfWeek = days[date.getDay()];
+  const month = months[date.getMonth()];
+  const dayOfMonth = date.getDate().toString().padStart(2, '0');
+  const year = date.getFullYear();
+  return `${dayOfWeek} ${month} ${dayOfMonth} ${year}`;
+}
+
+function filterByMonth() {
+  const selectedMonth = $('#monthSelect').val();
+  transactionData = transactionData.filter(function(rowData) {
+    const dateObj = new Date(rowData.date);
+    const month = dateObj.toLocaleString('default', { month: 'short' });
+    return month === selectedMonth;
+  });
+  createTable();
 }
