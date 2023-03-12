@@ -1,8 +1,12 @@
 let transactionData = [];
+let sortOrder = 'asc';
 
 function parseHTML() {
   // Create a new HTML document
   const html = $('#htmlInput').val();
+
+  // Get the card data input value
+  const cardData = $('#cardInput').val();
 
   console.log('saving html data in doc')
   const doc = $.parseHTML(html);
@@ -13,7 +17,6 @@ function parseHTML() {
   // If a table was found, parse its data
 
   if (table) {
-    console.log(transactionData)
   
     // Get the table rows from the table element
     const rows = $(table).find("tr");
@@ -69,6 +72,7 @@ function parseHTML() {
         }
       });
       if ('date' in rowObj && 'name' in rowObj && 'credit' in rowObj && 'debit' in rowObj) {
+        rowObj.card = cardData;
         transactionData.push(rowObj); // add rowObj to transactionData array
       }
     });
@@ -110,7 +114,21 @@ function createTable() {
   outputTable.append(headerRow);
   headerRow.append($("<th>").text("Index"));
   headerRow.append($("<th>").text("Merge"));
-  headerRow.append($("<th>").text("Date"));
+  let sort_button = $("<button>").attr("id", "sortButton").click(sortByDate)
+  if (sortOrder == 'asc') {
+    sort_button.text("^")
+  } else if (sortOrder == 'desc') {
+    sort_button.text("v")
+  } else {
+    alert("something is wrong with the sort logic")
+  }
+
+  headerRow.append($("<th>").text("Date").append(
+    sort_button
+  ));
+
+
+  headerRow.append($("<th>").text("Card"));
   headerRow.append($("<th>").text("Name"));
   headerRow.append($("<th>").text("Debit"));
   headerRow.append($("<th>").text("Credit"));
@@ -132,7 +150,9 @@ function createTable() {
     outputRow.append(mergeCell);
 
     // Add cells with the data from the rowData object
+
     outputRow.append($("<td>").text(formatDate(rowData.date)));
+    outputRow.append($("<td>").text(rowData.card));
     outputRow.append($("<td>").text(rowData.name));
     outputRow.append($("<td>").text(rowData.debit));
     outputRow.append($("<td>").text(rowData.credit));
@@ -214,5 +234,16 @@ function filterByMonth() {
     const month = dateObj.toLocaleString('default', { month: 'short' });
     return month === selectedMonth;
   });
+  createTable();
+}
+
+function sortByDate() {
+  if (sortOrder === "asc") {
+    transactionData.sort((a, b) => new Date(a.date) - new Date(b.date));
+    sortOrder = "desc"
+  } else {
+    transactionData.sort((a, b) => new Date(b.date) - new Date(a.date));
+    sortOrder = "asc"
+  }
   createTable();
 }
