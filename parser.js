@@ -1,6 +1,10 @@
 let transactionData = [];
 let sortOrder = 'asc';
 
+const CATEGORIES = [
+  ' ', 'food', 'lyft', 'gas', 'entertainment', 'groceries'
+]
+
 function parseHTML() {
   // Create a new HTML document
   const html = $('#htmlInput').val();
@@ -91,6 +95,11 @@ function createTable() {
   const mergeContainer = $("<div>").append(mergeInput).append(mergeButton);
   $('#output').prepend(mergeContainer);
 
+  // Add a button to merge the selected categories
+  const mergeCategoriesButton = $("<button>").text("Merge Categories");
+  mergeCategoriesButton.click(mergeCategories);
+  $('#output').prepend(mergeCategoriesButton);
+
   // Add a select element for choosing the month to filter by
   const monthSelect = $("<select>").attr("id", "monthSelect");
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -123,6 +132,8 @@ function createTable() {
     alert("something is wrong with the sort logic")
   }
 
+  headerRow.append($("<th>").text("Category"));
+
   headerRow.append($("<th>").text("Date").append(
     sort_button
   ));
@@ -148,6 +159,23 @@ function createTable() {
     const mergeCheckbox = $("<input>").attr("type", "checkbox").attr("name", "merge").attr("value", rowIndex);
     mergeCell.append(mergeCheckbox);
     outputRow.append(mergeCell);
+
+    // Add a dropdown cell for selecting the category
+    const categoryCell = $("<td>");
+    const categoryDropdown = $("<select>").attr("name", "category");
+
+    // Populate the dropdown options using the CATEGORIES global variable
+    CATEGORIES.forEach(function (category) {
+      categoryDropdown.append($("<option>").text(category));
+    });
+
+    // Add an event listener to update the category value in transactionData
+    categoryDropdown.change(function () {
+      rowData.category = $(this).val();
+    });
+
+    categoryCell.append(categoryDropdown);
+    outputRow.append(categoryCell);
 
     // Add cells with the data from the rowData object
 
@@ -245,5 +273,75 @@ function sortByDate() {
     transactionData.sort((a, b) => new Date(b.date) - new Date(a.date));
     sortOrder = "asc"
   }
+  createTable();
+}
+
+function mergeCategories() {
+  const selectedCategories = [];
+
+  let deletedRows = [];
+  let newRows = [];
+
+  // Find selected categories from the table rows
+  $('select[name="category"]').each(function () {
+    const category = $(this).val();
+    if (category && !selectedCategories.includes(category) && category != ' ') {
+      selectedCategories.push(category);
+    }
+  });
+
+  // Merge rows with the same selected category
+  selectedCategories.forEach(function (category) {
+    const mergedRows = [];
+    transactionData.forEach(function (rowData, rowIndex) {
+      if (rowData.category === category) {
+        mergedRows.push(rowIndex);
+        }
+    });
+
+    // Check if there are at least two rows to merge
+    if (mergedRows.length >= 2) {
+      // Get the merged name from the input field
+      const mergedName = $("#mergeInput").val();
+
+      // Create a new merged row
+      const mergedRow = {
+        date: "",
+        name: category,
+        debit: 0,
+        credit: 0
+      };
+
+      // Calculate the total amount and remove the merged rows
+      let totalCredit = 0;
+      let totalDebit = 0;
+      mergedRows.forEach(function (rowIndex) {
+
+        const row = transactionData[rowIndex];
+        mergedRow.date = row.date;
+        totalCredit += parseFloat(row.credit);
+        totalDebit += parseFloat(row.debit);
+        deletedRows.push(rowIndex)
+      });
+
+      // Add the merged row to the transactionData array
+      mergedRow.credit = totalCredit;
+      mergedRow.debit = totalDebit;
+      newRows.push(mergedRow);
+    }
+
+  });
+
+  deletedRows.sort(function(a, b){return b-a});
+
+  deletedRows.forEach(function (rowIndex) {
+    deleteRow(rowIndex);
+  });
+
+  newRows.forEach(function (row) {
+    transactionData.unshift(row);
+  });
+
+  // Recreate the table with updated data
   createTable();
 }
